@@ -3,7 +3,9 @@
             [clojure.tools.namespace.file :as ns-file]
             [clojure.tools.namespace.find :as ns-find]
             [cheshire.core :as json])
-  (:import (java.io FileOutputStream OutputStreamWriter)
+  (:import (clojure.lang IPersistentCollection IPersistentVector
+                         Keyword Namespace Symbol)
+           (java.io FileOutputStream OutputStreamWriter)
            (java.util.zip GZIPOutputStream)))
 
 ;; Rebind if you desire to change the metadata for a clojure extraction
@@ -39,16 +41,35 @@
     "utilities.clj"
     "java.clj"})
 
+(defmulti coerce type)
+
+(defmethod coerce String [s] s)
+(defmethod coerce Number [n] n)
+(defmethod coerce Boolean [b] b)
+(defmethod coerce Keyword [k] (name k))
+(defmethod coerce IPersistentVector [v] (mapv coerce v))
+(defmethod coerce IPersistentCollection [coll] (map coerce coll))
+(defmethod coerce Namespace [n] (str n))
+(defmethod coerce Symbol [s] (str s))
+(defmethod coerce nil [n] nil)
+(defmethod coerce Class [k] (pr-str k))
+(defmethod coerce :default [obj]
+  (println "[!] I don't know how to coerce" (type obj))
+  (pr-str obj))
+
+;; Metadata that should be elided from the document map
+(def ^:dynamic bad-metadata #{:protocol :inline :inline-arities})
+
 (defn munge-doc
   "Take a map of a clojure symbol, and munge it into an indexable doc map.
   Removes fields that can't be indexed and munges fields into better strings."
   [doc]
   (-> doc
-      (dissoc :protocol :inline :inline-arities)
-      (update-in [:ns] str)
-      (update-in [:name] str)
-      (update-in [:tag] #(when % (pr-str %)))
-      (update-in [:arglists] (fn [arglists] (map str arglists)))))
+      ((partial apply dissoc) bad-metadata)
+      (update-in [:ns] coerce)
+      (update-in [:name] coerce)
+      (update-in [:tag] coerce)
+      (update-in [:arglists] coerce)))
 
 (defn get-project-meta
   "Return a map of information about the project that should be indexed."
@@ -109,7 +130,7 @@
     (println "[=] Done.")))
 
 (defn gen-project-docs
-  "Given a leiningen project, generate json for all vars in that project."
+  "Given a leiningen project map, generate json for all vars in that project."
   [project]
   (let [paths (or (:source-paths project) [(:source-path project)])
         source-files (mapcat #(-> %
