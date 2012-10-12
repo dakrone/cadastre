@@ -33,7 +33,7 @@ To use Cadastre as a library:
                    :scm "http://github.com/foo/bar"
                    :license {:name "Eclipse Public License"
                              :url "http://www.eclipse.org/legal/epl-v10.html"}
-                   :version "1.0"}
+                   :version "1.0"})
 
 ;; encode the map to json, filename is optional again
 (gen-project-docs-json {...} "bar-1.0.json.gz")
