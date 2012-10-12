@@ -8,6 +8,13 @@
            (java.io FileOutputStream OutputStreamWriter)
            (java.util.zip GZIPOutputStream)))
 
+;; println debugging
+(def ^:dynamic *debug* false)
+
+(defn dbg [& things]
+  (when *debug*
+    (apply println things)))
+
 ;; Rebind if you desire to change the metadata for a clojure extraction
 (def ^:dynamic clj-version (clojure-version))
 
@@ -54,7 +61,7 @@
 (defmethod coerce nil [n] nil)
 (defmethod coerce Class [k] (pr-str k))
 (defmethod coerce :default [obj]
-  (println "[!] I don't know how to coerce" (type obj))
+  (dbg "[!] I don't know how to coerce" (type obj))
   (pr-str obj))
 
 ;; Metadata that should be elided from the document map
@@ -71,18 +78,22 @@
       (update-in [:tag] coerce)
       (update-in [:arglists] coerce)))
 
+;; Metadata that should be pulled out of the project map
+(def ^:dynamic project-metadata
+  #{:name :url :description :version :group :scm :license})
+
 (defn get-project-meta
   "Return a map of information about the project that should be indexed."
   [project]
-  (select-keys project [:name :url :description :version :group :scm :license]))
+  (select-keys project project-metadata))
 
 (defn serialize-project-info
   "Writes json-encoded project information to a gzipped file. Filename format
   will be <project-name>-<version>.json.gz"
-  [info]
-  (let [filename (str (:name info) "-" (:version info) ".json.gz")]
-    (println "[-] Writing output to" filename)
-    (with-open [fos (FileOutputStream. filename)
+  [info & [filename]]
+  (let [f (or filename (str (:name info) "-" (:version info) ".json.gz"))]
+    (dbg "[-] Writing output to" f)
+    (with-open [fos (FileOutputStream. f)
                 gzs (GZIPOutputStream. fos)
                 os (OutputStreamWriter. gzs)]
       (.write os (json/encode info)))))
@@ -94,8 +105,7 @@
   (try
     (let [ns-dec (ns-file/read-file-ns-decl f)
           ns-name (second ns-dec)]
-      (printf "[+] Processing %s...\n" (or ns-name f))
-      (flush)
+      (dbg (str "[+] Processing " (or ns-name f) "..."))
       (require ns-name)
       {(str ns-name) (->> ns-name
                           ns-interns
@@ -103,7 +113,7 @@
                           (map meta)
                           (map munge-doc))})
     (catch Exception e
-      (printf "Unable to parse (%s): %s\n" f e)
+      (dbg (str "Unable to parse " f ": " e))
       {})))
 
 (defn generate-all-data
@@ -118,7 +128,7 @@
     data-map))
 
 (defn gen-clojure
-  "Given a string for the clojure source directory, generate gzipped json for
+  "Given a string for the clojure source directory, generate a metadata map for
   the clojure/core project. Does some amount of finagling to ensure clojure/core
   can be read correctly."
   [clojure-dir]
@@ -126,11 +136,20 @@
         clj-files (ns-find/find-clojure-sources-in-dir clj-src-dir)
         clj-files (remove #(contains? blacklist (.getName %)) clj-files)
         data-map (generate-all-data clojure-project clj-files)]
-    (serialize-project-info data-map)
-    (println "[=] Done.")))
+    data-map))
+
+(defn gen-clojure-json
+  "Given a string for the clojure source directory, generate gzipped json for
+  the clojure/core project. Does some amount of finagling to ensure clojure/core
+  can be read correctly."
+  [clojure-dir & [filename]]
+  (let [data-map (gen-clojure clojure-dir)]
+    (serialize-project-info data-map filename)
+    (dbg "[=] Done generating clojure json.gz file.")))
 
 (defn gen-project-docs
-  "Given a leiningen project map, generate json for all vars in that project."
+  "Given a leiningen project map, generate a clojure metadata map for
+  all vars in that project."
   [project]
   (let [paths (or (:source-paths project) [(:source-path project)])
         source-files (mapcat #(-> %
@@ -139,9 +158,18 @@
                              paths)
         data-map (generate-all-data project source-files)]
     (serialize-project-info data-map)
-    (println "[=] Done.")))
+    data-map))
+
+(defn gen-project-docs-json
+  "Given a leiningen project map, generate gzipped json file for all
+  vars in that project."
+  [project & [filename]]
+  (let [data-map (gen-project-docs project)]
+    (serialize-project-info data-map filename)
+    (dbg "[=] Done generating project json.gz file.")))
 
 ;; How to use this to generate clojure/doc data:
 #_
-(gen-clojure "/Users/hinmanm/src/clojure")
-;; will generate 'clojure-1.4.0.json.gz' in the root directory
+(gen-clojure-json "/Users/hinmanm/src/clojure")
+;; will generate 'clojure-1.4.0.json.gz' in the root directory (or
+;; whatever version you are using
