@@ -9,10 +9,10 @@
            (java.util.zip GZIPOutputStream)))
 
 ;; println debugging
-(def ^:dynamic *debug* false)
+(def ^:dynamic *verbose* false)
 
 (defn dbg [& things]
-  (when *debug*
+  (when *verbose*
     (apply println things)))
 
 ;; Rebind if you desire to change the metadata for a clojure extraction
@@ -157,7 +157,6 @@
                                   ns-find/find-clojure-sources-in-dir)
                              paths)
         data-map (generate-all-data project source-files)]
-    (serialize-project-info data-map)
     data-map))
 
 (defn gen-project-docs-json
