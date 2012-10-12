@@ -11,7 +11,7 @@
 ;; println debugging
 (def ^:dynamic *verbose* false)
 
-(defn dbg [& things]
+(defn p [& things]
   (when *verbose*
     (apply println things)))
 
@@ -61,7 +61,7 @@
 (defmethod coerce nil [n] nil)
 (defmethod coerce Class [k] (pr-str k))
 (defmethod coerce :default [obj]
-  (dbg "[!] I don't know how to coerce" (type obj))
+  (p "[!] I don't know how to coerce" (type obj))
   (pr-str obj))
 
 ;; Metadata that should be elided from the document map
@@ -92,7 +92,7 @@
   will be <project-name>-<version>.json.gz"
   [info & [filename]]
   (let [f (or filename (str (:name info) "-" (:version info) ".json.gz"))]
-    (dbg "[-] Writing output to" f)
+    (p "[-] Writing output to" f)
     (with-open [fos (FileOutputStream. f)
                 gzs (GZIPOutputStream. fos)
                 os (OutputStreamWriter. gzs)]
@@ -105,7 +105,7 @@
   (try
     (let [ns-dec (ns-file/read-file-ns-decl f)
           ns-name (second ns-dec)]
-      (dbg (str "[+] Processing " (or ns-name f) "..."))
+      (p (str "[+] Processing " (or ns-name f) "..."))
       (require ns-name)
       {(str ns-name) (->> ns-name
                           ns-interns
@@ -113,7 +113,7 @@
                           (map meta)
                           (map munge-doc))})
     (catch Exception e
-      (dbg (str "Unable to parse " f ": " e))
+      (p (str "Unable to parse " f ": " e))
       {})))
 
 (defn generate-all-data
@@ -145,7 +145,7 @@
   [clojure-dir & [filename]]
   (let [data-map (gen-clojure clojure-dir)]
     (serialize-project-info data-map filename)
-    (dbg "[=] Done generating clojure json.gz file.")))
+    (p "[=] Done generating clojure json.gz file.")))
 
 (defn gen-project-docs
   "Given a leiningen project map, generate a clojure metadata map for
@@ -165,7 +165,7 @@
   [project & [filename]]
   (let [data-map (gen-project-docs project)]
     (serialize-project-info data-map filename)
-    (dbg "[=] Done generating project json.gz file.")))
+    (p "[=] Done generating project json.gz file.")))
 
 ;; How to use this to generate clojure/doc data:
 #_
