@@ -78,6 +78,8 @@ To use Cadastre as a library:
 ;; [=] Done generating clojure json.gz file.
 ```
 
+Example json output can be found [here (for cheshire)](https://gist.github.com/3880616)
+
 ## License
 
 Copyright © 2012 Lee Hinman
