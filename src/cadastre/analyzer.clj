@@ -1,5 +1,6 @@
 (ns cadastre.analyzer
   (:require [clojure.java.io :as io]
+            [clojure.repl :as repl]
             [clojure.tools.namespace.file :as ns-file]
             [clojure.tools.namespace.find :as ns-find]
             [cheshire.core :as json])
@@ -67,6 +68,16 @@
 ;; Metadata that should be elided from the document map
 (def ^:dynamic bad-metadata #{:protocol :inline :inline-arities})
 
+(defn add-source
+  "Takes a doc map, retrieving the source and adding it to the map."
+  [doc-map]
+  (try
+    (let [s (symbol (:ns doc-map) (:name doc-map))
+          source-str (repl/source-fn s)]
+      (assoc doc-map :source source-str))
+    (catch Exception _
+      (assoc doc-map :source nil))))
+
 (defn munge-doc
   "Take a map of a clojure symbol, and munge it into an indexable doc map.
   Removes fields that can't be indexed and munges fields into better strings."
@@ -76,7 +87,8 @@
       (update-in [:ns] coerce)
       (update-in [:name] coerce)
       (update-in [:tag] coerce)
-      (update-in [:arglists] coerce)))
+      (update-in [:arglists] coerce)
+      (add-source)))
 
 ;; Metadata that should be pulled out of the project map
 (def ^:dynamic project-metadata
