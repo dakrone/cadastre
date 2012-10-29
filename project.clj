@@ -1,4 +1,4 @@
-(defproject cadastre "0.1.1-SNAPSHOT"
+(defproject cadastre "0.1.1"
   :description "Survey a clojure project and extract valuable metadata."
   :url "https://github.com/dakrone/cadastre"
   :license {:name "Eclipse Public License"
