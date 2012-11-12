@@ -10,7 +10,7 @@ This project is primarily used for
 you want to use it from leiningen:
 
 ```clojure
-[cadastre "0.1.0"]
+[cadastre "0.1.1"]
 ```
 
 To use Cadastre as a library:
