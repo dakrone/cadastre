@@ -80,6 +80,11 @@ To use Cadastre as a library:
 
 Example json output can be found [here (for cheshire)](https://gist.github.com/3880616)
 
+## See Also
+
+- [lein-clojuredocs](http://github.com/dakrone/lein-clojuredocs)
+- [eisago](http://github.com/dakrone/eisago)
+
 ## License
 
 Copyright © 2012 Lee Hinman
