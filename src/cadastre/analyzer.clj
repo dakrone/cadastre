@@ -118,12 +118,18 @@
     (let [ns-dec (ns-file/read-file-ns-decl f)
           ns-name (second ns-dec)]
       (p (str "[+] Processing " (or ns-name f) "..."))
-      (require ns-name)
-      {(str ns-name) (->> ns-name
-                          ns-interns
-                          vals
-                          (map meta)
-                          (map munge-doc))})
+      (if (nil? ns-dec)
+        (do
+          (p (str "Unable to parse " f
+                  " because it did not begin with ns form."))
+          {})
+        (do
+          (require ns-name)
+          {(str ns-name) (->> ns-name
+                              ns-interns
+                              vals
+                              (map meta)
+                              (map munge-doc))})))
     (catch Exception e
       (p (str "Unable to parse " f ": " e))
       {})))
